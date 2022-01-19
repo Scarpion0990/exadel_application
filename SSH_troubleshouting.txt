@@ -1,0 +1,74 @@
+Firstly I will check internet connection and then if there is OpenSSH installed or not (example OS is ubuntu), if not I will install OpenSSH and then check firewall rules, like ufw or iptables, for instance I will check ufw status by command ``sudo ufw status`` if status is inactive it is OK, but if it is active we should allow SSH connection by command ``sudo ufw allow 'OpenSSH'``, after I will test SSH connection with my PC and server by these methods:
+1) Using timeout with bash utility to test SSH connection:
+#!/bin/bash
+
+server=10.10.10.10      # server IP
+port=22                 # port
+connect_timeout=5       # Connection timeout
+
+timeout $connect_timeout bash -c "</dev/tcp/$server/$port"
+if [ $? == 0 ];then
+   echo "SSH Connection to $server over port $port is possible"
+else
+   echo "SSH connection to $server over port $port is not possible"
+fi
+
+2) Using nmap to test SSH connection:
+#!/bin/bash
+
+server=10.10.10.10      # server IP
+port=22                 # port
+connect_timeout=5       # Connection timeout
+
+status=`nmap $server -Pn -p $port | egrep -io 'open|closed|filtered'`
+if [ $status == "open" ];then
+   echo "SSH Connection to $server over port $port is possible"
+elif [ $status == "filtered" ]; then
+   echo "SSH Connection to $server over port $port is possible but blocked by firewall"
+elif [ $status == "closed" ]; then
+   echo "SSH connection to $server over port $port is not possible"
+else
+   echo "Unable to get port $port status from $server"
+fi
+
+3) Using netcat or nc to test SSH connection:
+#!/bin/bash
+
+server=10.10.10.10      # server IP
+port=22                 # port
+connect_timeout=5       # Connection timeout
+
+nc --wait $connect_timeout $server $port < /dev/null &> /dev/null
+if [ $? == 0 ];then
+   echo "SSH Connection to $server over port $port is possible"
+else
+   echo "SSH connection to $server over port $port is not possible"
+fi
+
+4) Using SSH to check SSH connection:
+#!/bin/bash
+
+server=10.10.10.10      # server IP
+port=22                 # port
+connect_timeout=5       # Connection timeout
+
+ssh -q -o BatchMode=yes  -o StrictHostKeyChecking=no -o ConnectTimeout=$connect_timeout $server 'exit 0'
+if [ $? == 0 ];then
+   echo "SSH Connection to $server over port $port is possible"
+else
+   echo "SSH connection to $server over port $port is not possible"
+fi
+
+5) Using telnet to test SSH connection
+#!/bin/bash
+
+server=10.10.10.10      # server IP
+port=22                 # port
+connect_timeout=5       # Connection timeout
+
+echo quit | telnet $server $port 2>/dev/null | egrep -qi "Connected"
+if [ $? == 0 ];then
+   echo "SSH Connection to $server over port $port is possible"
+else
+   echo "SSH connection to $server over port $port is not possible"
+fi
